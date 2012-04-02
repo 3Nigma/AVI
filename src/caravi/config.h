@@ -53,7 +53,7 @@
 #define SET_PIN_INPUT(port, pin) RESET_PIN_DATA(port, pin)
 
 #define PIXCOLOR_STEP 20	/* anything below this value will be treated as black and
-							   anything above this value will be treated as white when interpreting the pixels
-							   acquired from the cams */
+				   anything above this value will be treated as white when interpreting the pixels
+				   acquired from the cams */
 
 #endif

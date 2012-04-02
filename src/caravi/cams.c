@@ -30,23 +30,22 @@
 
 #include "cams.h"
 
-void initCams(void)
-{
-	/* configure the serial com-cam pins */
-	SET_PIN_OUTPUT(CAM_PDIR, CAM0);
-	SET_PIN_OUTPUT(CAM_PDIR, CAM1);
-	
-	SET_PIN_DATA(CAM_RPORT, CAM0);
-	SET_PIN_DATA(CAM_RPORT, CAM1);
-	_delay_us(5);
-	RESET_PIN_DATA(CAM_RPORT, CAM0);
-	RESET_PIN_DATA(CAM_RPORT, CAM1);
-	_delay_us(5);
-	SET_PIN_DATA(CAM_RPORT, CAM0);
-	SET_PIN_DATA(CAM_RPORT, CAM1);
-	
-	_delay_ms(90);	/* t_{SPTT} = minim 90ms @ page 7, 17 */
-	_delay_ms(4);	/* "t_{compute} = minim 3.1ms Data Delay after PD deactivated" @ page 6 */
+void initCams(void){
+  /* configure the serial com-cam pins */
+  SET_PIN_OUTPUT(CAM_PDIR, CAM0);
+  SET_PIN_OUTPUT(CAM_PDIR, CAM1);
+  
+  SET_PIN_DATA(CAM_RPORT, CAM0);
+  SET_PIN_DATA(CAM_RPORT, CAM1);
+  _delay_us(5);
+  RESET_PIN_DATA(CAM_RPORT, CAM0);
+  RESET_PIN_DATA(CAM_RPORT, CAM1);
+  _delay_us(5);
+  SET_PIN_DATA(CAM_RPORT, CAM0);
+  SET_PIN_DATA(CAM_RPORT, CAM1);
+  
+  _delay_ms(90); /* t_{SPTT} = minim 90ms @ page 7, 17 */
+  _delay_ms(4);	 /* "t_{compute} = minim 3.1ms Data Delay after PD deactivated" @ page 6 */
 }
 
 uint8_t readCamReg(uint8_t camId, uint8_t address) {
@@ -57,31 +56,32 @@ uint8_t readCamReg(uint8_t camId, uint8_t address) {
   
   for (cnt = 128; cnt > 0 ; cnt >>= 1) {
     RESET_PIN_DATA(CAM_RPORT, camId);
-	if((address & cnt) != 0)
-	  SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	else
+    if((address & cnt) != 0)
+      SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
+    else
       RESET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	SET_PIN_DATA(CAM_RPORT, camId);
+    SET_PIN_DATA(CAM_RPORT, camId);
   }
   
   SET_PIN_INPUT(CAM_PDIR, CAM_DATAPIN);
   //_delay_us(0); /* TODO: Watch this! Tweaked by ear! Data sheet says it should be [tHOLD = 100us] min. */
-				 /* 100 - ok value
-				    90  - ok value
-				    75  - ok value
-					50  - ok value
-					10  - ok value
-					5   - ok value
-					0   - ok value */
+  /* 100 - ok value
+     90  - ok value
+     75  - ok value
+     50  - ok value
+     10  - ok value
+     5   - ok value
+     0   - ok value */
   for (cnt = 128; cnt > 0 ; cnt >>= 1) {
     RESET_PIN_DATA(CAM_RPORT, camId);
-	SET_PIN_DATA(CAM_RPORT, camId);
-	if(bit_is_set(CAM_WPORT, CAM_DATAPIN))
-		response |= cnt;
+    SET_PIN_DATA(CAM_RPORT, camId);
+    if(bit_is_set(CAM_WPORT, CAM_DATAPIN))
+      response |= cnt;
   }
-
+  
   return response;
 }
+
 void writeCamReg(uint8_t camId, uint8_t address, uint8_t data){
   uint8_t cnt = 0;
   
@@ -89,99 +89,85 @@ void writeCamReg(uint8_t camId, uint8_t address, uint8_t data){
   
   for (cnt = 128; cnt > 0 ; cnt >>= 1) {
     RESET_PIN_DATA(CAM_RPORT, camId);
-	if((address & cnt) != 0)
-	  SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	else
+    if((address & cnt) != 0)
+      SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
+    else
       RESET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	SET_PIN_DATA(CAM_RPORT, camId);
+    SET_PIN_DATA(CAM_RPORT, camId);
   }
-
+  
   for (cnt = 128; cnt > 0 ; cnt >>= 1) {
     RESET_PIN_DATA(CAM_RPORT, camId);
-	if((data & cnt) != 0)
-	  SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	else
+    if((data & cnt) != 0)
+      SET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
+    else
       RESET_PIN_DATA(CAM_RPORT, CAM_DATAPIN);
-	SET_PIN_DATA(CAM_RPORT, camId);
+    SET_PIN_DATA(CAM_RPORT, camId);
   }
-
+  
   //_delay_us(0); /* TODO: Watch this! tSWW, tSWR = 100us min. */
-				  /* 100 - ok value
-				     50  - ok value
-					 10  - ok value
-					 5   - ok value
-					 0   - ok value */
+  /* 100 - ok value
+     50  - ok value
+     10  - ok value
+     5   - ok value
+     0   - ok value */
 }
 
-inline void softResetCam(uint8_t camId)
-{
-	uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_RESET;
-	writeCamReg(camId, WCONFIG, currentConf);
+inline void softResetCam(uint8_t camId){
+  uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_RESET;
+  writeCamReg(camId, WCONFIG, currentConf);
 }
-inline void pwrDownCam(uint8_t camId)
-{
-	uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_PWRDOWN;
-	writeCamReg(camId, WCONFIG, currentConf);
+inline void pwrDownCam(uint8_t camId){
+  uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_PWRDOWN;
+  writeCamReg(camId, WCONFIG, currentConf);
 }
-inline void forceAwakeCam(uint8_t camId)
-{
-	uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_FORCEDAWAKE;
-	writeCamReg(camId, WCONFIG, currentConf);
+inline void forceAwakeCam(uint8_t camId){
+  uint8_t currentConf = readCamReg(camId, RCONFIG) | CONFIG_FORCEDAWAKE;
+  writeCamReg(camId, WCONFIG, currentConf);
 }
-inline uint8_t isCamOnline(uint8_t camId)
-{
-	return (readCamReg(camId, RSTATUS) | STATUS_PRODID) == 0x01;
+inline uint8_t isCamOnline(uint8_t camId){
+  return (readCamReg(camId, RSTATUS) | STATUS_PRODID) == 0x01;
 }
-inline uint8_t isCamAsleep(uint8_t camId)
-{
-	return (readCamReg(camId, RSTATUS) | STATUS_AWAKE) == 0x01;
+inline uint8_t isCamAsleep(uint8_t camId){
+  return (readCamReg(camId, RSTATUS) | STATUS_AWAKE) == 0x01;
 }
-inline uint8_t getMaxPixel(uint8_t camId)
-{
-	return readCamReg(camId, RMAX_PIX);
+inline uint8_t getMaxPixel(uint8_t camId){
+  return readCamReg(camId, RMAX_PIX);
 }
-inline uint8_t getMinPixel(uint8_t camId)
-{
-	return readCamReg(camId, RMIN_PIX);
+inline uint8_t getMinPixel(uint8_t camId){
+  return readCamReg(camId, RMIN_PIX);
 }
-inline uint8_t getSqual(uint8_t camId)
-{
-	return readCamReg(camId, RSQUAL);
+inline uint8_t getSqual(uint8_t camId){
+  return readCamReg(camId, RSQUAL);
 }
-inline uint8_t getPixelSum(uint8_t camId)
-{
-	return readCamReg(camId, RPIX_SUM);
+inline uint8_t getPixelSum(uint8_t camId){
+  return readCamReg(camId, RPIX_SUM);
 }
-inline uint8_t getXMovement(uint8_t camId)
-{
-	return readCamReg(camId, RDELTA_X);
+inline uint8_t getXMovement(uint8_t camId){
+  return readCamReg(camId, RDELTA_X);
 }
-inline uint8_t getYMovement(uint8_t camId)
-{
-	return readCamReg(camId, RDELTA_Y);
+inline uint8_t getYMovement(uint8_t camId){
+  return readCamReg(camId, RDELTA_Y);
 }
-inline void requirePixels(uint8_t camId)
-{
-	uint8_t rowIndex = 0;
-	uint8_t colIndex = 0;
-	uint8_t pixVal = 0;
-	
-	writeCamReg(camId, WPIX_DATA, 0x01);							/* initialize a pixel dump command with a dummy write */
-	do{
-		pixVal = readCamReg(camId, RPIX_DATA);
-	}while((pixVal & PIXDATA_SOF) == 0);							/* wait for start of frame bit */
-	pixVal -= PIXDATA_SOF;											/* normalize pixel value to discard SOF bit*/
-	
-	/* acquire actual pixels (18x18 = 324)*/
-	for(rowIndex = 0; rowIndex < 18; ++rowIndex)
-	{
-		for(colIndex = 0; colIndex < 18 ; ++colIndex)
-		{
-			if((pixVal & PIXDATA_IVALID) != 0)						/* make sure that the pixel is valid */
-				printf("%c", (pixVal - PIXDATA_IVALID)); //< PIXCOLOR_STEP ? '0' : '1')
-			else --colIndex;
-			pixVal = readCamReg(camId, RPIX_DATA);					/* read next pixel */
-		}			
-		printf("\n");
-	}
+inline void requirePixels(uint8_t camId){
+  uint8_t rowIndex = 0;
+  uint8_t colIndex = 0;
+  uint8_t pixVal = 0;
+  
+  writeCamReg(camId, WPIX_DATA, 0x01); /* initialize a pixel dump command with a dummy write */
+  do{
+    pixVal = readCamReg(camId, RPIX_DATA);
+  }while((pixVal & PIXDATA_SOF) == 0); /* wait for start of frame bit */
+  pixVal -= PIXDATA_SOF; /* normalize pixel value to discard SOF bit*/
+  
+  /* acquire actual pixels (18x18 = 324)*/
+  for(rowIndex = 0; rowIndex < 18; ++rowIndex){
+    for(colIndex = 0; colIndex < 18 ; ++colIndex){
+	if((pixVal & PIXDATA_IVALID) != 0)						/* make sure that the pixel is valid */
+	  printf("%c", (pixVal - PIXDATA_IVALID)); /*< PIXCOLOR_STEP ? '0' : '1')*/
+	else --colIndex;
+	pixVal = readCamReg(camId, RPIX_DATA);					/* read next pixel */
+    }			
+    printf("\n");
+  }
 }

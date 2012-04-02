@@ -39,28 +39,28 @@
 #include <avr/io.h>
 
 /* define motor identifiers */
-#define LEFT_MOTOR	0
+#define LEFT_MOTOR  0
 #define RIGHT_MOTOR 1
-#define ALL_MOTORS	2
+#define ALL_MOTORS  2
 
 /* gears used by the motors modeled through their respective clock prescaler values */
-#define SLOW_GEAR		0b00000101		/* <timer clock> = clk/1024 */
-#define CRUISING_GEAR	0b00000011		/* <timer clock> = clk/64 */
-#define FAST_GEAR		0b00000001		/* <timer clock> = clk/1 */
+#define SLOW_GEAR       0b00000101 /* <timer clock> = clk/1024 */
+#define CRUISING_GEAR   0b00000011 /* <timer clock> = clk/64 */
+#define FAST_GEAR       0b00000001 /* <timer clock> = clk/1 */
 
 /* available motor directions */
 #define FORWARD 0
 #define REVERSE 1
 
 /* L298 interface definition */
-#define CONTROLLER_PORT_DIR		DDRC
-#define CONTROLLER_PORT_DATA	PORTC
+#define CONTROLLER_PORT_DIR   DDRC
+#define CONTROLLER_PORT_DATA  PORTC
 /* Motor B(right side) - Bridge control pins */
-#define IN1B_C_PIN				PC7
-#define IN2B_D_PIN				PC6
+#define IN1B_C_PIN  	PC7
+#define IN2B_D_PIN	PC6
 /* Motor A(left side) - Bridge control pins */
-#define IN3A_C_PIN				PC5
-#define IN4A_D_PIN				PC4
+#define IN3A_C_PIN	PC5
+#define IN4A_D_PIN	PC4
 
 void initMotors(void);
 

@@ -41,20 +41,20 @@
 #define RF_DDR	DDRB
 #define RF_PIN	PINB
 
-#define SDI		PB5
-#define SCK		PB7
-#define CS		PB4
-#define SDO		PB6
-#define NRES	PB2			/* TODO: watch PORT value when setting and clearing this */
+#define SDI	PB5
+#define SCK	PB7
+#define CS	PB4
+#define SDO	PB6
+#define NRES	PB2  /* TODO: watch PORT value when setting and clearing this */
 
-#define RF_INT_PORT	PORTD
-#define RF_INT_DDR	DDRD
-#define RF_INT_PIN	PIND
+#define RF_INT_PORT  PORTD
+#define RF_INT_DDR   DDRD
+#define RF_INT_PIN   PIND
 
 #define NIRQ	PD2
 
-extern void initRF(void);											// initialize module
-extern void rf12_txdata(uint8_t *, uint8_t);		// transmit number of bytes from array
-extern void rf12_rxdata(uint8_t *, uint8_t);	// receive number of bytes into array
+extern void initRF(void);
+extern void rf12_txdata(uint8_t *, uint8_t);
+extern void rf12_rxdata(uint8_t *, uint8_t);
 
 #endif
