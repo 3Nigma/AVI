@@ -5,31 +5,7 @@
 #include <map>
 #include <lua5.1/lua.hpp>
 #include "exceptions.hpp"
-
-class GValue {
-public:
-  GValue(const std::string &val) : mVal(val) {};
-  void setValue(const std::string &newVal) {
-    mVal = newVal;
-  }
-  bool operator==(const GValue &rhs) const {
-    return mVal == rhs.mVal;
-  }
-  operator int() const {
-    return stoi(mVal);
-  }
-  operator std::string() const {
-    return mVal;
-  }
-  operator double() const {
-    return stod(mVal);
-  }
-  operator float() const {
-    return stof(mVal);
-  }
-private:
-  std::string mVal;
-};
+#include "gvalue.hpp"
 
 class Settings{
 public:
