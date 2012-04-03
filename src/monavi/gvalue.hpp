@@ -1,14 +1,14 @@
-#ifndef _GVALUE_HPP_
-#define _GVALUE_HPP_
+#ifndef _GSVALUE_HPP_
+#define _GSVALUE_HPP_
 
 #include <string>
 
-class GValue {
+class GSValue {
 public:
-  GValue(const std::string &val);
+  GSValue(const std::string &val);
 
   void setValue(const std::string &newVal);
-  bool operator==(const GValue &rhs) const;
+  bool operator==(const GSValue &rhs) const;
 
   operator int() const;
   operator std::string() const;

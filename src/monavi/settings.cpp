@@ -89,7 +89,7 @@ void Settings::loadFromFile(const std::string &fileName)
 
     std::string value_string = lua_tostring(lstate, -1);
     
-    settings.insert({key_string, GValue(value_string)});
+    settings.insert({key_string, GSValue(value_string)});
 
     lua_pop(lstate, 1);
   }

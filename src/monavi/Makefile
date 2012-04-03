@@ -1,6 +1,6 @@
 CPP := g++
 CXX_PATH = /home/enigma/Projects/externe/cxxtest/
-LDFLAGS := -llua5.1
+LDFLAGS := -llua5.1 `pkg-config --libs --cflags gtkmm-3.0`
 
 PROJ := monavi
 CXXOUT := trun
@@ -13,9 +13,8 @@ TSTS := settings_tests.cxx
 
 ./%.cxx : ./%.hpp
 	$(CXX_PATH)/bin/cxxtestgen --part --error-printer -o $*.cxx $<
-
 ./%.o : ./%.cpp
-	$(CPP) -Wall -std=c++0x -c $< -o $@
+	$(CPP) -Wall -std=c++0x -c $< -o $@ $(LDFLAGS)
 
 .PHONY: all tests clean
 

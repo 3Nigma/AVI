@@ -24,7 +24,7 @@ private:
 
 protected:
   static Settings sSettings;
-  std::map<std::string, GValue> settings;
+  std::map<std::string, GSValue> settings;
   lua_State *lstate;
 };
 
