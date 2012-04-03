@@ -1,0 +1,6 @@
+.gitignore
+*.o
+*.cxx
+*~
+bin/
+obj/
