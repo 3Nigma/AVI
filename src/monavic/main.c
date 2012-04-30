@@ -11,6 +11,21 @@ guint8 topCamPixData[] = {0b10101010, 0b10101010, 0b10100000, 0b00000000, 0b0000
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00010000};
 
+guint8 bottomCamPixData[] = {0b01010101, 0b01010101, 0b01000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b10000000};
+
+void DrawCamWidgetBorder(cairo_t *cr, int widWidth, int widHeight, double re, double gr, double bl) {
+  cairo_set_line_width(cr, 1.0);
+  cairo_set_source_rgb(cr, re, gr, bl);
+  cairo_rectangle(cr, 0.5, 0.5, (double)widWidth - 0.5, (double)widHeight - 0.5);
+  cairo_stroke(cr);
+}
+
 void RenderCamWidget(cairo_t *cr, int widWidth, int widHeight, int camWidth, int camHeight, guint8 *pixData) {
   g_assert(NULL != cr);
   g_assert(widWidth >= camWidth);
@@ -42,16 +57,26 @@ void RenderCamWidget(cairo_t *cr, int widWidth, int widHeight, int camWidth, int
   cairo_fill (cr);
 }
 
-static gboolean ExposeWidgetCallback(GtkWidget *widget, GdkEventExpose *event, gpointer data)
-{
+static gboolean ExposeCamWidgetCallback(GtkWidget *widget, GdkEventExpose *event, gpointer data) {
   cairo_t *cr = gdk_cairo_create (widget->window);
   gpointer pixDupData = g_memdup(data, (AVI_CAM_WIDTH * AVI_CAM_HEIGHT)/8 + 1);
 
+  DrawCamWidgetBorder(cr, widget->allocation.width, widget->allocation.height, 0.0, 0.5, 0.25);
   RenderCamWidget(cr, widget->allocation.width, widget->allocation.height, AVI_CAM_WIDTH, AVI_CAM_HEIGHT, pixDupData);
 
   g_free(pixDupData);
   cairo_destroy(cr);
   return TRUE;
+}
+
+GtkWidget *avi_new_cam(gpointer *pixDataHolder) {
+  GtkWidget *cam = gtk_drawing_area_new();
+
+  gtk_widget_set_size_request(cam, 250, 250);
+  g_signal_connect(G_OBJECT(cam), "expose_event",  
+                   G_CALLBACK(ExposeCamWidgetCallback), pixDataHolder);
+
+  return cam;
 }
 
 static gboolean delete_event(GtkWidget *widget, GdkEvent *ev, gpointer data) {
@@ -60,20 +85,30 @@ static gboolean delete_event(GtkWidget *widget, GdkEvent *ev, gpointer data) {
 }
 
 int main(int argc, char *argv[]) {
-  GtkWidget *window;
-  GtkWidget *imgCamTop;
+  GtkWidget *window = NULL;
+  GtkWidget *windowLayout = NULL;
+  GtkWidget *imgCamTop = NULL;
+  GtkWidget *imgCamBottom = NULL;
 
   gtk_init(&argc, &argv);
+
+  /* initialize main window */
   window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(window), "AVI Monitor");
+  gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
   g_signal_connect(window, "delete-event", G_CALLBACK(delete_event), NULL);
   gtk_container_set_border_width(GTK_CONTAINER(window), 10);
 
-  imgCamTop = gtk_drawing_area_new();
-  gtk_widget_set_size_request (imgCamTop, 250, 250);
-  g_signal_connect (G_OBJECT (imgCamTop), "expose_event",  
-                    G_CALLBACK (ExposeWidgetCallback), (gpointer *)&topCamPixData[0]);
-  gtk_container_add(GTK_CONTAINER(window), imgCamTop);
+  /* initialize the camera widgets */
+  imgCamTop = avi_new_cam((gpointer *)&topCamPixData[0]);
+  imgCamBottom = avi_new_cam((gpointer *)&bottomCamPixData[0]);
+
+  /* add window container and organize widgets */
+  windowLayout = gtk_table_new(3, 3, FALSE);
+  gtk_table_attach_defaults(GTK_TABLE(windowLayout), imgCamTop, 0, 1, 0, 1);
+  gtk_table_attach_defaults(GTK_TABLE(windowLayout), gtk_image_new_from_file("../../doc/avi_cam_layout_small.png"), 1, 2, 0, 1);
+  gtk_table_attach_defaults(GTK_TABLE(windowLayout), imgCamBottom, 2, 3, 0, 1);
+  gtk_container_add(GTK_CONTAINER(window), windowLayout);
 
   /*box1 = gtk_hbox_new(FALSE, 0);
   gtk_container_add(GTK_CONTAINER(window), box1);
