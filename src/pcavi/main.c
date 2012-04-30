@@ -70,7 +70,7 @@ void sendUARTResponse(AtomicResponse comStatus) {
   uart_sendbyte(comStatus);
 }
 
-void sendUARTCarResponse(AtomicCommand *muc) {
+AtomicResponse sendUARTCarResponse(AtomicCommand *muc) {
   uint8_t id;
   uint8_t uartSendAttempt = 0;
   AtomicResponse clientResponse;
@@ -94,6 +94,7 @@ int main(void) {
 
   initRF();
   uart_init();
+  uart_putstr("PC Avi Online!");
 
   while(1) {
     comStatus = aquireUARTCommand(&com);
