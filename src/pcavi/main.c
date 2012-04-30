@@ -35,18 +35,91 @@
 
 #include "rf12.h"
 #include "uart.h"
+#include "datatypes.h"
+
+AtomicResponse aquireUARTCommand(AtomicCommand *muc) {
+  uint8_t localCrc = 0;
+  uint8_t id;
+
+  /* aquire packet length */
+  muc->length = uart_getbyte();
+  if(muc->length > (sizeof(muc->data)/sizeof(muc->data[0]))) return INVALID_LENGTH;
+
+  if(0 == muc->length) {
+    /* PC wants a meta command */
+    muc->type = META_COMMAND; 
+    muc->length = 1;
+  } else {
+    /* PC wants an ordinary car command */
+    muc->type = CAR_COMMAND;
+  }
+
+  /* get payload + CRC */
+  for(id = 0; id < muc->length; ++id) {
+    muc->data[id] = uart_getbyte();
+    localCrc += muc->data[id];
+  }
+  muc->crc = uart_getbyte();
+
+  if(localCrc != muc->crc) return INVALID_CRC;
+
+  return ALL_OK;
+}
+
+void sendUARTResponse(AtomicResponse comStatus) {
+  uart_sendbyte(comStatus);
+}
+
+void sendUARTCarResponse(AtomicCommand *muc) {
+  uint8_t id;
+  uint8_t uartSendAttempt = 0;
+  AtomicResponse clientResponse;
+
+  do {
+    uart_sendbyte(muc->length);
+    for(id = 0; id < muc->length; ++id) {
+      uart_sendbyte(muc->data[id]);
+    }
+    uart_sendbyte(muc->crc);
+
+    clientResponse = uart_getbyte();
+  } while(clientResponse != ALL_OK && uartSendAttempt++ < UART_MAXTX_ATTEMPTS);
+  
+  return clientResponse;
+}
 
 int main(void) {
-  uint8_t msg[] = "Test";
-  
+  AtomicResponse comStatus;
+  AtomicCommand com;
+
   initRF();
   uart_init();
 
-  uart_putstr ("PC Avi Online!");
-
   while(1) {
-      rf12_txdata(msg, sizeof(msg));
-      PORTD ^= _BV(TX_LED);	
-      _delay_ms(1000);	
+    comStatus = aquireUARTCommand(&com);
+    sendUARTResponse(comStatus);
+    if(comStatus == ALL_OK) {
+      /* the received uart command was valid, handle it */
+      switch(com.type) {
+      case META_COMMAND:
+        switch(com.data[0]) {
+        case META_ONLINE_REQUEST:
+          uart_sendbyte(META_ONLINE_RESPONSE);
+          break;
+        default:
+          /* it shouldn't reach this point */ 
+          break;
+        }
+        break;
+      case CAR_COMMAND:
+        sendUARTResponse(rf12_txdata(&com));
+        sendUARTResponse(rf12_rxdata(&com));
+        sendUARTCarResponse(&com);
+        break; 
+      default:
+        /* it shouldn't reach this point */
+        break;
+      }
+    }	
   }
 }

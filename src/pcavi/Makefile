@@ -106,6 +106,9 @@ endif
 # All Target
 all: $(OUTPUT_FILE_PATH) $(ADDITIONAL_DEPENDENCIES)
 
+burn_hex: $(OUTPUT_FILE_PATH)
+	avrdude -p t2313 -c usbtiny -U flash:w:$(PROJ_BIN)/$(PROJ).hex
+
 # AVR/GNU C/C++ Linker
 $(OUTPUT_FILE_PATH): $(OBJS) $(USER_OBJS)
 	@echo Building target: $@

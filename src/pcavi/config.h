@@ -32,10 +32,17 @@
 #define _CONFIG_H_
 
 /* general MCU configs */
-#define F_CPU		8000000
+#define F_CPU          8000000
+#define UART_BAUD_RATE 19200
 
 /* status LEDs mappings */
+#define LED_DIR_PORT DDRD
+#define LED_DATA_PORT PORTD
 #define RX_LED PD5
 #define TX_LED PD6
+
+#define UART_MAXTX_ATTEMPTS 3
+#define RF12_MAXRX_ATTEMPTS 3
+#define RF12_MAXTX_ATTEMPTS 3
 
 #endif
