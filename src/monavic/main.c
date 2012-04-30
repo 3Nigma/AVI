@@ -79,6 +79,62 @@ GtkWidget *avi_new_cam(gpointer *pixDataHolder) {
   return cam;
 }
 
+void avi_console_append_text(GtkWidget *textview, gchar *text)
+{
+  GtkTextBuffer *tbuffer;
+  GtkTextIter ei;
+
+  tbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+  gtk_text_buffer_get_end_iter(tbuffer, &ei);
+  gtk_text_buffer_insert(tbuffer, &ei, text, -1);
+}
+
+GtkWidget *avi_new_console() {
+  GtkWidget *consoleView;
+
+  consoleView = gtk_text_view_new();
+  gtk_widget_set_size_request(consoleView, 1, 150);
+  gtk_text_view_set_editable(GTK_TEXT_VIEW(consoleView), FALSE);
+  gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(consoleView), FALSE);
+
+  avi_console_append_text(consoleView, "MonAviC process started...");
+
+  return consoleView;
+}
+
+GtkWidget *avi_new_console_labeled() {
+  GtkWidget *container = NULL;
+  GtkWidget *label = NULL;
+
+  label = gtk_label_new("AVI Console :");
+  gtk_misc_set_alignment(GTK_MISC(label),0.0,0.5);
+  gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
+
+  container = gtk_table_new(2, 1, FALSE);
+  gtk_table_attach(GTK_TABLE(container), label, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
+  gtk_table_attach(GTK_TABLE(container), avi_new_console(), 0, 1, 1, 2, GTK_FILL|GTK_EXPAND, GTK_FILL, 0, 0);
+
+  return container;
+}
+
+GtkWidget *avi_new_button_box() {
+  GtkWidget *comButtons = NULL;
+  GtkWidget *btStop = NULL;
+  GtkWidget *btLoadScript = NULL;
+  GtkWidget *btManualCtrl = NULL;
+
+  btLoadScript = gtk_button_new_with_mnemonic("_Run script");
+  btStop = gtk_button_new_with_mnemonic("_STOP!"); 
+  btManualCtrl = gtk_toggle_button_new_with_mnemonic("_Auto Run"); 
+
+  comButtons = gtk_hbutton_box_new();
+  gtk_container_add(GTK_CONTAINER(comButtons), btStop);
+  gtk_container_add(GTK_CONTAINER(comButtons), btLoadScript);
+  gtk_container_add(GTK_CONTAINER(comButtons), btManualCtrl);
+
+  return comButtons;
+}
+
 static gboolean delete_event(GtkWidget *widget, GdkEvent *ev, gpointer data) {
   gtk_main_quit();
   return FALSE;
@@ -108,6 +164,8 @@ int main(int argc, char *argv[]) {
   gtk_table_attach_defaults(GTK_TABLE(windowLayout), imgCamTop, 0, 1, 0, 1);
   gtk_table_attach_defaults(GTK_TABLE(windowLayout), gtk_image_new_from_file("../../doc/avi_cam_layout_small.png"), 1, 2, 0, 1);
   gtk_table_attach_defaults(GTK_TABLE(windowLayout), imgCamBottom, 2, 3, 0, 1);
+  gtk_table_attach_defaults(GTK_TABLE(windowLayout), avi_new_console_labeled(), 0, 3, 1, 2);
+  gtk_table_attach_defaults(GTK_TABLE(windowLayout), avi_new_button_box(), 0, 3, 2, 3);
   gtk_container_add(GTK_CONTAINER(window), windowLayout);
 
   /*box1 = gtk_hbox_new(FALSE, 0);
