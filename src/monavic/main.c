@@ -1,12 +1,15 @@
 #include <gtk/gtk.h>
 
+#define AVI_CAM_WIDTH 18
+#define AVI_CAM_HEIGHT 18
+
 guint8 topCamPixData[] = {0b10101010, 0b10101010, 0b10100000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
                             0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
-                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000};
+                            0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00010000};
 
 void RenderCamWidget(cairo_t *cr, int widWidth, int widHeight, int camWidth, int camHeight, guint8 *pixData) {
   g_assert(NULL != cr);
@@ -39,14 +42,14 @@ void RenderCamWidget(cairo_t *cr, int widWidth, int widHeight, int camWidth, int
   cairo_fill (cr);
 }
 
-static gboolean expose_event_callback (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+static gboolean ExposeWidgetCallback(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
-  cairo_t *cr;
+  cairo_t *cr = gdk_cairo_create (widget->window);
+  gpointer pixDupData = g_memdup(data, (AVI_CAM_WIDTH * AVI_CAM_HEIGHT)/8 + 1);
 
-  cr = gdk_cairo_create (widget->window);
-  g_print("%d\n", *((guint8 *)data));
-  RenderCamWidget(cr, widget->allocation.width, widget->allocation.height, 18, 18, (guint8 *)data);
+  RenderCamWidget(cr, widget->allocation.width, widget->allocation.height, AVI_CAM_WIDTH, AVI_CAM_HEIGHT, pixDupData);
 
+  g_free(pixDupData);
   cairo_destroy(cr);
   return TRUE;
 }
@@ -69,7 +72,7 @@ int main(int argc, char *argv[]) {
   imgCamTop = gtk_drawing_area_new();
   gtk_widget_set_size_request (imgCamTop, 250, 250);
   g_signal_connect (G_OBJECT (imgCamTop), "expose_event",  
-                    G_CALLBACK (expose_event_callback), (gpointer *)&topCamPixData[0]);
+                    G_CALLBACK (ExposeWidgetCallback), (gpointer *)&topCamPixData[0]);
   gtk_container_add(GTK_CONTAINER(window), imgCamTop);
 
   /*box1 = gtk_hbox_new(FALSE, 0);
