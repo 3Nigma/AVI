@@ -8,6 +8,7 @@ CXX_RUNNER_SRC := test_runner.cxx
 OBJS := main.o \
 exceptions.o \
 gvalue.o \
+mainwindow.o \
 settings.o
 TSTS := settings_tests.cxx
 

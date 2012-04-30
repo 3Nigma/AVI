@@ -36,26 +36,14 @@
 #include "rf12.h"
 #include "uart.h"
 
-#define RX_LED PD5
-#define TX_LED PD6
-
 int main(void) {
   uint8_t msg[] = "Test";
-	
-  uart_init();
-  uart_putstr ("Hello");
-  
-  DDRD |= _BV(RX_LED) | _BV(TX_LED);
-  
-  /* set nRES pin of RFM12 HIGH */
-  DDRD |= _BV(PD3);
-  PORTD &= ~_BV(PD3);
-  _delay_ms(10);
-  PORTD |= _BV(PD3);
-  _delay_ms(100);
   
   initRF();
-  
+  uart_init();
+
+  uart_putstr ("PC Avi Online!");
+
   while(1) {
       rf12_txdata(msg, sizeof(msg));
       PORTD ^= _BV(TX_LED);	

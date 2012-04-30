@@ -54,6 +54,16 @@ uint16_t rf12_wrt_cmd(uint16_t cmd) {
 }
 
 void initRF(void) {
+  /* configure status leds */
+  DDRD |= _BV(RX_LED) | _BV(TX_LED);
+
+  /* set nRES pin of RFM12 HIGH */
+  DDRD |= _BV(NRES);
+  PORTD &= ~_BV(NRES);
+  _delay_ms(10);
+  PORTD |= _BV(NRES);
+  _delay_ms(100);
+
   /* initialize rf port connections */
   RF_PORT |= _BV(CS) | _BV(SDI);
   RF_PORT &= ~_BV(SCK);
@@ -118,7 +128,6 @@ void rf12_txdata(uint8_t *data, uint8_t length) {
   uint8_t checksum = 0;
 	
   rf12_wrt_cmd(0x0000);  /* read status register */
-  //rf12_wrt_cmd(0xB8AA);
   rf12_wrt_cmd(0xB8AA);
   rf12_wrt_cmd(0x8239);  /* !ER, !EBB, ET, ES, EX, !EB, EW, DC */
   /* send preamble */
@@ -126,21 +135,14 @@ void rf12_txdata(uint8_t *data, uint8_t length) {
   rf12_send_char(0xAA);
   rf12_send_char(0x2D);  /* send SYNC High byte */
   rf12_send_char(0xD4);  /* send SYNC Low byte */
-	
+
   /* send useful data */
-  rf12_send_char('G');  /* send data length byte */
-  rf12_send_char('A');
-  rf12_send_char('G');
-  rf12_send_char('U');
-  rf12_send_char('T');
-  rf12_send_char('A');
-  rf12_send_char('T');
-  rf12_send_char('I');
-  /*for(cnt = 0; cnt < length; ++ cnt) {
+  rf12_send_char(length);  /* send data length byte */
+  for(cnt = 0; cnt < length; ++ cnt) {
     rf12_send_char(data[cnt]);
     checksum += data[cnt];
-    }*/
-  //rf12_send_char(checksum);  /* send raw checksum byte */
+  }
+  rf12_send_char(checksum);  /* send raw checksum byte */
 	
   /* finish TX session */
   rf12_send_char(0xAA);

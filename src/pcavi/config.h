@@ -34,4 +34,8 @@
 /* general MCU configs */
 #define F_CPU		8000000
 
+/* status LEDs mappings */
+#define RX_LED PD5
+#define TX_LED PD6
+
 #endif
