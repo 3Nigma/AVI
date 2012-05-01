@@ -31,11 +31,13 @@
 #ifndef _RF12_H_
 #define _RF12_H_
 
-#include <avr/io.h>
 #include "config.h"
+#include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+
 #include "uart.h"
+#include "datatypes.h"
 
 #define RF_PORT	PORTB
 #define RF_DDR	DDRB
@@ -54,7 +56,7 @@
 #define NIRQ	PD2
 
 extern void initRF(void);
-extern void rf12_txdata(uint8_t *, uint8_t);
-extern void rf12_rxdata(uint8_t *, uint8_t);
+extern AtomicResponse rf12_txdata(AtomicCommand *com);
+extern AtomicResponse rf12_rxdata(AtomicCommand *com);
 
 #endif

@@ -34,6 +34,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+#include "datatypes.h"
 #include "uart.h"
 #include "cams.h"
 #include "motors.h"
@@ -41,13 +42,12 @@
 
 int main(void)
 {
-	uint8_t *recvData;
+	AtomicCommand pcCom;
 	uint8_t optMod = 0;
 	uint8_t optCamId = 0;
 	uint8_t optFeat = 0;
 	uint8_t motorSpeed = 0;
 	uint16_t rfWrtResponse = 0;
-	char rxMsg[12];
 	
 	/* initialize system modules */
 	//initMotors();
@@ -93,8 +93,9 @@ int main(void)
 	//forceAwakeCam(CAM1);
 	
 	//uart_putstr("All system initialized, MCU online!");
-	while(1)
-	{
+    while(1) {
+    rf12_rxdata(&pcCom);
+    rf12_txdata(&pcCom);
 		//rf12_rxdata((uint8_t *)rxMsg, 8);
 		//uart_putstr(rxMsg);
 		/*if(rfm12_rx_status() == STATUS_COMPLETE)

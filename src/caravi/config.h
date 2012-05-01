@@ -32,8 +32,12 @@
 #define _CONFIG_H_
 
 /* general MCU configs */
-#define UART_BAUD	19200
+#define UART_BAUD_RATE  19200
 #define F_CPU		8000000
+
+/* maximum reprocess values */
+#define RF12_MAXRX_ATTEMPTS 3
+#define RF12_MAXTX_ATTEMPTS 3
 
 /* cams region */
 #define CAM_RPORT	PORTD

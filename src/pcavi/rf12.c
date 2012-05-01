@@ -185,7 +185,6 @@ AtomicResponse rf12_txdata(AtomicCommand *com) {
     rf12_send_byte(0xAA);
     rf12_wrt_cmd(0x8209);  /* !ER, !EBB, ET, ES, EX, !EB, EW, DC */
 
-    _delay_ms(10);
     remoteResponse = rf12_get_atomicresponse();
   } while(remoteResponse != ALL_OK && txAttemptId++ < RF12_MAXTX_ATTEMPTS);
 
@@ -216,7 +215,7 @@ AtomicResponse rf12_rxdata(AtomicCommand *com) {
 
     rf12_wrt_cmd(0x8209);  /* RX off */
 
-    if(localCrc != com->crc) {
+    if(localCrc == com->crc) {
       rf12_send_atomicresponse(ALL_OK);
       return ALL_OK;
     } else {

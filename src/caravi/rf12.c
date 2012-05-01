@@ -92,10 +92,10 @@ void initRF(void) {
   rf12_wrt_cmd(0x82C9);  /* enable xtal, disable clk pin */
   
   /* configure RF device interrupt */
-  RF_INT_DDR &= ~_BV(NIRQ);
-  MCUCR |= _BV(ISC01); 	/* raise an interrupt on falling edge of INT0 */
-  MCUCR &= ~_BV(ISC00);
-  GICR |= _BV(INT0);  /* enable external interrupt on INT0 */
+  //RF_INT_DDR &= ~_BV(NIRQ);
+  //MCUCR |= _BV(ISC01); 	/* raise an interrupt on falling edge of INT0 */
+  //MCUCR &= ~_BV(ISC00);
+  //GICR |= _BV(INT0);  /* enable external interrupt on INT0 */
   
   /* clear fifo */
   //rf12_wrt_cmd(0xCA81); // FIFO8,SYNC,!ff,DR
@@ -114,7 +114,7 @@ ISR(INT0_vect) {
   //if(rfStatus & 0x8000)
   //{
   recvDblChr = rf12_wrt_cmd(0xB000);
-  uart_putc(recvDblChr & 0x00FF);
+  uart_sendbyte(recvDblChr & 0x00FF);
   rxChrCount ++;
   if(rxChrCount == 8) {
     PORTA |= 0x01;
@@ -128,12 +128,12 @@ ISR(INT0_vect) {
   //}
 }
 
-void rf12_send_char(unsigned char toSend) {
+void rf12_send_byte(uint8_t toSend) {
   while(RF_INT_PIN & _BV(NIRQ)); /* wait for previous TX to finish */
   rf12_wrt_cmd(0xB800 + toSend);
 }
 
-uint8_t rf12_recv_char(void) {
+uint8_t rf12_recv_byte(void) {
   uint16_t recvDblChr;
   
   while(RF_INT_PIN & _BV(NIRQ));
@@ -142,46 +142,108 @@ uint8_t rf12_recv_char(void) {
   return (recvDblChr & 0x00FF);
 }
 
-void rf12_txdata(uint8_t *data, uint8_t length) {	
-  uint8_t cnt;
-  uint8_t checksum = 0;
-  
+AtomicResponse rf12_get_atomicresponse() {
+  AtomicResponse resp;
+
+  rf12_wrt_cmd(0x82C9);  /* RX on */
+  rf12_wrt_cmd(0xCA81);  /* set FIFO mode */
+  rf12_wrt_cmd(0xCA83);  /* enable FIFO */
+
+  resp = rf12_recv_byte();
+
+  rf12_wrt_cmd(0x8209);  /* RX off */
+
+  return resp;
+}
+
+void rf12_send_atomicresponse(AtomicResponse resp) {	
   rf12_wrt_cmd(0x0000);	 /* read status register */
   rf12_wrt_cmd(0x8239);	 /* !er, !ebb, ET, ES, EX, !eb, !ew, DC */
   /* send preamble */
-  rf12_send_char(0xAA);
-  rf12_send_char(0xAA);
-  rf12_send_char(0xAA);
-  rf12_send_char(0x2D);  /* send SYNC High byte */
-  rf12_send_char(0xD4);  /* send SYNC Low byte */
-  
-  /* send useful data */
-  rf12_send_char(length);  /* send data length byte */
-  for(cnt = 0; cnt < length; ++ cnt) {
-      rf12_send_char(data[cnt]);
-      checksum += data[cnt];
-    }
-  rf12_send_char(checksum);  /* send raw checksum byte */
-  
+  rf12_send_byte(0xAA);
+  rf12_send_byte(0xAA);
+  rf12_send_byte(0xAA);
+  rf12_send_byte(0x2D);  /* send SYNC High byte */
+  rf12_send_byte(0xD4);  /* send SYNC Low byte */
+
+  rf12_send_byte(resp);
+
   /* finish TX session */
-  rf12_send_char(0xAA);
-  rf12_send_char(0xAA);
-  rf12_send_char(0xAA);
-  rf12_wrt_cmd(0x8209);
-  
-  _delay_ms(10);
+  rf12_send_byte(0xAA);
+  rf12_send_byte(0xAA);
+  rf12_send_byte(0xAA);
+  rf12_wrt_cmd(0x8209);  /* !ER, !EBB, ET, ES, EX, !EB, EW, DC */
 }
 
-void rf12_rxdata(uint8_t *data, uint8_t length) {	
+AtomicResponse rf12_txdata(AtomicCommand *com) {		
+  uint8_t cnt;
+  uint8_t txAttemptId = 0;
+  AtomicResponse remoteResponse;
+
+  do {
+    rf12_wrt_cmd(0x0000);	 /* read status register */
+    rf12_wrt_cmd(0x8239);	 /* !er, !ebb, ET, ES, EX, !eb, !ew, DC */
+    /* send preamble */
+    rf12_send_byte(0xAA);
+    rf12_send_byte(0xAA);
+    rf12_send_byte(0xAA);
+    rf12_send_byte(0x2D);  /* send SYNC High byte */
+    rf12_send_byte(0xD4);  /* send SYNC Low byte */
+  
+    /* send useful data */
+    rf12_send_byte(com->length);  /* send data length byte */
+    com->crc = 0;
+    for(cnt = 0; cnt < com->length; ++cnt) {
+      rf12_send_byte(com->data[cnt]);
+      com->crc += com->data[cnt];
+    }
+    rf12_send_byte(com->crc);  /* send raw checksum byte */
+  
+    /* finish TX session */
+    rf12_send_byte(0xAA);
+    rf12_send_byte(0xAA);
+    rf12_send_byte(0xAA);
+    rf12_wrt_cmd(0x8209);
+  
+    remoteResponse = rf12_get_atomicresponse();
+    //_delay_ms(10);
+  } while(remoteResponse != ALL_OK && txAttemptId++ < RF12_MAXTX_ATTEMPTS);
+
+  if(remoteResponse == ALL_OK)
+    return ALL_OK;
+
+  return FAILED_TX;
+}
+
+AtomicResponse rf12_rxdata(AtomicCommand *com) {	
+  uint8_t localCrc;
+  uint8_t rxAttemptId = 0;
   uint8_t i;
-  
-  rf12_wrt_cmd(0x82C9);	 /* RX on */
-  rf12_wrt_cmd(0xCA81);	 /* set FIFO mode */
-  rf12_wrt_cmd(0xCA83);	 /* Enable FIFO */
-  for (i = 0; i < length; ++i) {	
-    *data++ = rf12_recv_char();
-  }
-  
-  rf12_wrt_cmd(0x8209);	 /* RX off /*
+
+  do {
+    rf12_wrt_cmd(0x82C9);  /* RX on */
+    rf12_wrt_cmd(0xCA81);  /* set FIFO mode */
+    rf12_wrt_cmd(0xCA83);  /* enable FIFO */
+
+    com->length = rf12_recv_byte();
+    PORTA ^= 0x01;
+    localCrc = 0;
+    for (i = 0; i < com->length; ++i) {
+      com->data[i] = rf12_recv_byte();
+      localCrc += com->data[i];
+    }
+    com->crc = rf12_recv_byte();
+
+    rf12_wrt_cmd(0x8209);  /* RX off */
+
+    if(localCrc == com->crc) {
+      rf12_send_atomicresponse(ALL_OK);
+      return ALL_OK;
+    } else {
+      rf12_send_atomicresponse(INVALID_CRC);
+    }
+  } while(localCrc != com->crc && rxAttemptId++ < RF12_MAXRX_ATTEMPTS);
+
+  return FAILED_RX;
 }
 
