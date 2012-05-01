@@ -31,22 +31,19 @@
 
 #include "commands.h"
 
-static int linkPresent = 0;
-static int comPort = 0;
+static cssl_t *serialLink;
 
 int initLink(int port, int baud) {
-  if(OpenComport(port, baud) != 1) {
-    comPort = port;
-    linkPresent = 1;
-    return 1;
-  }
+  cssl_start();
+  serialLink = cssl_open("/dev/ttyUSB0", NULL, 0,
+		     baud,8,0,1);
 
-  return 0;
+  return serialLink != NULL;
 }
 
 void closeLink(int port) {
-  linkPresent = 0;
-  CloseComport(port);
+  cssl_close(serialLink);
+  cssl_stop();
 }
 
 static uint8_t computeCrc(uint8_t *data, uint8_t len) {
@@ -62,37 +59,29 @@ static uint8_t computeCrc(uint8_t *data, uint8_t len) {
 
 static uint8_t procMetaCommand(AtomicCommand *com) {
   uint8_t resp;
-  uint8_t buff[1];
   uint8_t txAttemptCnt = 0;
-  uint8_t elapsedTime = 0;
   int i = 0;
 
   /* send command */
   com->crc = computeCrc(com->data, 1);
   do {
-    SendByte(comPort, com->length);
+    cssl_putchar(serialLink, com->length);
     for(i = 0; i < META_PAYLOAD_LENGTH; ++i) {
-      SendByte(comPort, com->data[i]);
+      cssl_putchar(serialLink, com->data[i]);
     }
-    SendByte(comPort, com->crc);
+    cssl_putchar(serialLink, com->crc);
 
-    elapsedTime = 0;
-    while(PollComport(comPort, buff, 1) == 0 && elapsedTime != 25) { usleep(1); elapsedTime++; }
-  } while(buff[0] != ALL_OK && (txAttemptCnt++) < 5);
+  } while(cssl_getchar(serialLink) != ALL_OK && (txAttemptCnt++) < 5);
 
   /* receive response */
-  elapsedTime = 0;
-  while(PollComport(comPort, buff, 1) == 0 && elapsedTime != 25) { usleep(1); elapsedTime++; }
-  resp = buff[0];
+  resp = cssl_getchar(serialLink);
 
   return resp;
 }
 
 static AtomicCommand procCommand(AtomicCommand *com) {
   AtomicCommand resp;
-  uint8_t buff[MAX_COMMAND_PAYLOAD + 2];
-  uint8_t buffIndex = 0;
-  uint8_t recvByteCnt = 0;
+  uint8_t respByte;
   uint8_t localCrc = 0;
   uint8_t txAttemptCnt = 0;
   uint8_t rxAttemptCnt = 0;
@@ -101,45 +90,52 @@ static AtomicCommand procCommand(AtomicCommand *com) {
   /* send command */
   com->crc = computeCrc(com->data, com->length);
   do {
-    SendByte(comPort, com->length);
+    cssl_putchar(serialLink, com->length);
     for(i = 0; i < com->length; ++i) {
-      SendByte(comPort, com->data[i]);
+      cssl_putchar(serialLink, com->data[i]);
     }
-    SendByte(comPort, com->crc);
-    while(PollComport(comPort, buff, 1)) { }
-  } while(buff[0] != ALL_OK && (txAttemptCnt++) < 5);
+    cssl_putchar(serialLink, com->crc);
+   
+    respByte = cssl_getchar(serialLink);
+  } while(respByte != ALL_OK && (txAttemptCnt++) < 5);
+  if(respByte != ALL_OK) {
+    fprintf(stderr, "TX feedback missed!\n");
+  }
+
+  /* get PCAVI -> CARAVI Tx response */
+  respByte = cssl_getchar(serialLink);
+  if(respByte != ALL_OK) {
+    fprintf(stderr, "PCAVI -> CARAVI Tx response not OK : %d!\n", respByte);
+  }
+
+  /* get CARAVI -> PCAVI Rx response */
+  respByte = cssl_getchar(serialLink);
+  if(respByte != ALL_OK) {
+    fprintf(stderr, "CARAVI -> PCAVI Tx response not OK : %d!\n", respByte);
+  }
 
   /* receive response */
   do {
-    /* get PCAVI -> CARAVI Tx response */
-    while(PollComport(comPort, buff, 1)) { }
-    if(buff[0] != ALL_OK) {
-      fprintf(stderr, "PCAVI -> CARAVI Tx response not OK : %d!\n", buff[0]);
-    }
-    /* get CARAVI -> PCAVI Rx response */
-    while(PollComport(comPort, buff, 1)) { }
-    if(buff[0] != ALL_OK) {
-      fprintf(stderr, "CARAVI -> PCAVI Tx response not OK : %d!\n", buff[0]);
-    }
     /* get complete packet */
-    while((recvByteCnt = PollComport(comPort, buff, sizeof(buff))) == 0) { }
     localCrc = 0;
-    buffIndex = 1;
-    resp.length = buff[0];
+    resp.length = cssl_getchar(serialLink);
     resp.data = (uint8_t *)malloc(resp.length * sizeof(uint8_t));
     for(i = 0; i < resp.length; ++i) {
-      resp.data[i] = buff[buffIndex++];
+      resp.data[i] = cssl_getchar(serialLink);
       localCrc += resp.data[i];
     }
-    resp.crc = buff[buffIndex];
+    resp.crc = cssl_getchar(serialLink);
 
     if(resp.crc != localCrc) {
-      SendByte(comPort, INVALID_CRC);
+      cssl_putchar(serialLink, INVALID_CRC);
       free(resp.data);
     } else {
-      SendByte(comPort, ALL_OK);
+      cssl_putchar(serialLink, ALL_OK);
     } 
   } while(resp.crc != localCrc && (rxAttemptCnt++) < 5);
+  if(resp.crc != localCrc) {
+    fprintf(stderr, "Response window missed, CRC mismatched!\n");
+  }
 
   return resp;
 }
@@ -155,7 +151,7 @@ static AtomicCommand getIsOnlineMetaCommand() {
 }
 
 gboolean isPCAviOnline() {
-  g_assert(linkPresent == 1);
+  g_assert(serialLink != NULL);
 
   AtomicCommand reqCom = getIsOnlineMetaCommand();
   uint8_t result = procMetaCommand(&reqCom);
@@ -176,7 +172,7 @@ static AtomicCommand getResetCamCommand(uint8_t camId) {
 }
 
 gboolean softResetCam(uint8_t camId) {
-  g_assert(linkPresent == 1);
+  g_assert(serialLink != NULL);
 
   AtomicCommand reqCom = getResetCamCommand(camId);
   AtomicCommand result = procCommand(&reqCom);
@@ -197,7 +193,7 @@ static AtomicCommand getPwrDownCamCommand(uint8_t camId) {
 }
 
 gboolean powerDownCam(uint8_t camId) {
-  g_assert(linkPresent == 1);
+  g_assert(serialLink != NULL);
 
   AtomicCommand reqCom = getPwrDownCamCommand(camId);
   AtomicCommand result = procCommand(&reqCom);
@@ -217,14 +213,20 @@ static AtomicCommand getPixelCamDataCommand(uint8_t camId) {
   return resp;
 }
 
-gboolean getPixelData(uint8_t camId, uint8_t **holder, uint8_t holderSz) {
-  g_assert(linkPresent == 1);
+gboolean getPixelData(uint8_t camId, uint8_t *holder, uint8_t holderSz) {
+  g_assert(serialLink != NULL);
 
   AtomicCommand reqCom = getPixelCamDataCommand(camId);
   AtomicCommand result = procCommand(&reqCom);
   g_assert(result.length <= holderSz);
   g_assert(NULL != holder);
-  g_memmove((*holder), reqCom.data, holderSz);
+
+  int i = 0;
+  for(i = 0; i < holderSz; ++i) {
+    holder[i] = reqCom.data[i];
+  }
+
+  free(reqCom.data);
 
   return TRUE;
 }

@@ -89,10 +89,9 @@ GtkWidget *avi_new_appwindow() {
   else
     avi_console_append_text(NULL, "PC Avi OFFLINE!\n");
 
-  //softResetCam(CAR_CAMS_ID_MID);
-  //getPixelData(CAR_CAMS_ID_MID, (uint8_t **)&bottomCamPixData, AVI_CAM_BUFLENGTH);
-  //sleep(1);
-  //powerDownCam(CAR_CAMS_ID_MID);
+  softResetCam(CAR_CAMS_ID_MID);
+  getPixelData(CAR_CAMS_ID_MID, bottomCamPixData, AVI_CAM_BUFLENGTH);
+  powerDownCam(CAR_CAMS_ID_MID);
 
   return window;
 }

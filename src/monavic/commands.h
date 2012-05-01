@@ -33,9 +33,10 @@
 #define _COMMANDS_H_
 
 #include <stdlib.h>
+#include <string.h>
 #include <gtk/gtk.h>
 #include <unistd.h>
-#include "rs232.h"
+#include "cssl.h"
 #include "datatypes.h"
 
 #define ttyUSB0 16
@@ -46,6 +47,6 @@ extern void closeLink(int port);
 extern gboolean isPCAviOnline();
 extern gboolean softResetCam(uint8_t);
 extern gboolean powerDownCam(uint8_t);
-extern gboolean getPixelData(uint8_t, uint8_t **, uint8_t);
+extern gboolean getPixelData(uint8_t, uint8_t *, uint8_t);
 
 #endif
