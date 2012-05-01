@@ -29,28 +29,20 @@
 ***************************************************************************
 */
 
+#ifndef _COMMANDS_H_
+#define _COMMANDS_H_
+
+#include <stdlib.h>
 #include <gtk/gtk.h>
+#include <unistd.h>
+#include "rs232.h"
+#include "datatypes.h"
 
-#include "commands.h"
-#include "mainwindow.h"
+#define ttyUSB0 16
 
-int main(int argc, char *argv[]) {
-  GtkWidget *window = NULL;
+extern int initLink(int port, int baud);
+extern void closeLink(int port);
 
-  gtk_init(&argc, &argv);
+extern gboolean isPCAviOnline();
 
-  /* initialize serial link */
-  if(initLink(ttyUSB0, 19200) == FALSE) {
-    fprintf(stderr, "Error on opening serial port!\n");
-    return -1;
-  }
-
-  /* initialize main window */
-  window = avi_new_appwindow();
-  gtk_widget_show_all(window);
-
-  gtk_main();
-
-  closeLink(ttyUSB0);
-  return 0;
-}
+#endif

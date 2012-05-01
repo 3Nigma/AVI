@@ -1,11 +1,11 @@
 /*
 ***************************************************************************
 *
-* Author: Victor ADASCALITEI
+* Author: Teunis van Beelen
 *
-* Copyright (C) 2012 Victor ADASCALITEI
+* Copyright (C) 2005, 2006, 2007, 2008, 2009 Teunis van Beelen
 *
-* adascalitei.victor@gmail.com
+* teuniz@gmail.com
 *
 ***************************************************************************
 *
@@ -29,28 +29,49 @@
 ***************************************************************************
 */
 
-#include <gtk/gtk.h>
 
-#include "commands.h"
-#include "mainwindow.h"
 
-int main(int argc, char *argv[]) {
-  GtkWidget *window = NULL;
+#ifndef rs232_INCLUDED
+#define rs232_INCLUDED
 
-  gtk_init(&argc, &argv);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-  /* initialize serial link */
-  if(initLink(ttyUSB0, 19200) == FALSE) {
-    fprintf(stderr, "Error on opening serial port!\n");
-    return -1;
-  }
+#include <stdio.h>
+#include <string.h>
 
-  /* initialize main window */
-  window = avi_new_appwindow();
-  gtk_widget_show_all(window);
 
-  gtk_main();
 
-  closeLink(ttyUSB0);
-  return 0;
-}
+#ifdef __linux__
+
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <limits.h>
+
+#else
+
+#include <windows.h>
+
+#endif
+
+int OpenComport(int, int);
+int PollComport(int, unsigned char *, int);
+int SendByte(int, unsigned char);
+int SendBuf(int, unsigned char *, int);
+void CloseComport(int);
+void cprintf(int, const char *);
+int IsCTSEnabled(int);
+
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+#endif
+
+

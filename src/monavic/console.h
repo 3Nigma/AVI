@@ -29,28 +29,14 @@
 ***************************************************************************
 */
 
-#include <gtk/gtk.h>
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-#include "commands.h"
-#include "mainwindow.h"
+#include<gtk/gtk.h>
 
-int main(int argc, char *argv[]) {
-  GtkWidget *window = NULL;
+extern GtkWidget *avi_new_console();
+extern GtkWidget *avi_new_console_labeled();
 
-  gtk_init(&argc, &argv);
+extern void avi_console_append_text(GtkWidget *textview, gchar *text);
 
-  /* initialize serial link */
-  if(initLink(ttyUSB0, 19200) == FALSE) {
-    fprintf(stderr, "Error on opening serial port!\n");
-    return -1;
-  }
-
-  /* initialize main window */
-  window = avi_new_appwindow();
-  gtk_widget_show_all(window);
-
-  gtk_main();
-
-  closeLink(ttyUSB0);
-  return 0;
-}
+#endif

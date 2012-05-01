@@ -29,28 +29,17 @@
 ***************************************************************************
 */
 
+#ifndef _CAMWIDGET_H_
+#define _CAMWIDGET_H_
+
 #include <gtk/gtk.h>
 
-#include "commands.h"
-#include "mainwindow.h"
+#define AVI_CAM_WIDTH 18
+#define AVI_CAM_HEIGHT 18
+#define AVI_CAM_BUFLENGTH ((AVI_CAM_HEIGHT * AVI_CAM_WIDTH + 4)/8)
 
-int main(int argc, char *argv[]) {
-  GtkWidget *window = NULL;
+extern void DrawCamWidgetBorder(cairo_t *cr, int widWidth, int widHeight, double re, double gr, double bl);
+extern void RenderCamWidget(cairo_t *cr, int widWidth, int widHeight, int camWidth, int camHeight, guint8 *pixData);
+extern GtkWidget *avi_new_cam(gpointer *pixDataHolder);
 
-  gtk_init(&argc, &argv);
-
-  /* initialize serial link */
-  if(initLink(ttyUSB0, 19200) == FALSE) {
-    fprintf(stderr, "Error on opening serial port!\n");
-    return -1;
-  }
-
-  /* initialize main window */
-  window = avi_new_appwindow();
-  gtk_widget_show_all(window);
-
-  gtk_main();
-
-  closeLink(ttyUSB0);
-  return 0;
-}
+#endif

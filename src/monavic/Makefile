@@ -1,17 +1,17 @@
 CC := gcc
 LDFLAGS := `pkg-config --libs --cflags gtk+-2.0`
-CFLAGS := -Wall -g
+CFLAGS := -Wall -I. -I../../lib -g 
 
 PROJ := monavic
-OBJS := 
+OBJS := rs232.o commands.o console.o camwidget.o mainwindow.o
 
-./%.o : ./%.c
-	$(CPP) $(CFLAGS) -c $< -o $@
+%.o : %.c
+	$(CC) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
 .PHONY: all clean
 
 all: $(OBJS)
-	$(CC) $(CFLAGS) -o $(PROJ) $(OBJS) main.c $(LDFLAGS)
+	$(CC) $(CFLAGS) $(OBJS) main.c -o $(PROJ) $(LDFLAGS)
 
 clean:
 	rm -f $(PROJ) $(OBJS)

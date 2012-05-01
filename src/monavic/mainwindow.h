@@ -29,28 +29,16 @@
 ***************************************************************************
 */
 
+#ifndef _MAINWINDOW_H_
+#define _MAINWINDOW_H_
+
 #include <gtk/gtk.h>
-
+#include "datatypes.h"
 #include "commands.h"
-#include "mainwindow.h"
+#include "console.h"
+#include "camwidget.h"
 
-int main(int argc, char *argv[]) {
-  GtkWidget *window = NULL;
+extern GtkWidget *avi_new_button_box();
+extern GtkWidget *avi_new_appwindow();
 
-  gtk_init(&argc, &argv);
-
-  /* initialize serial link */
-  if(initLink(ttyUSB0, 19200) == FALSE) {
-    fprintf(stderr, "Error on opening serial port!\n");
-    return -1;
-  }
-
-  /* initialize main window */
-  window = avi_new_appwindow();
-  gtk_widget_show_all(window);
-
-  gtk_main();
-
-  closeLink(ttyUSB0);
-  return 0;
-}
+#endif
