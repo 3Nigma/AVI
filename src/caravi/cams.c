@@ -30,6 +30,9 @@
 
 #include "cams.h"
 
+static uint8_t camPixBuf[2][CAM_PIX_BYTECNT];
+static uint8_t camSteps[2];
+
 void initCams(void){
   /* configure the serial com-cam pins */
   SET_PIN_OUTPUT(CAM_PDIR, CAM0);
@@ -46,6 +49,10 @@ void initCams(void){
   
   _delay_ms(90); /* t_{SPTT} = minim 90ms @ page 7, 17 */
   _delay_ms(4);	 /* "t_{compute} = minim 3.1ms Data Delay after PD deactivated" @ page 6 */
+
+  /* set default pixel steps */
+  camSteps[0] = 64;
+  camSteps[1] = 64;
 }
 
 uint8_t readCamReg(uint8_t camId, uint8_t address) {
@@ -153,7 +160,10 @@ inline void requirePixels(uint8_t camId){
   uint8_t rowIndex = 0;
   uint8_t colIndex = 0;
   uint8_t pixVal = 0;
-  
+  uint8_t bitIndex = 0;
+  uint8_t byteIndex = 0;
+  uint8_t offsetCamId = (camId == CAM0 ? 0 : 1);
+
   writeCamReg(camId, WPIX_DATA, 0x01); /* initialize a pixel dump command with a dummy write */
   do{
     pixVal = readCamReg(camId, RPIX_DATA);
@@ -161,13 +171,46 @@ inline void requirePixels(uint8_t camId){
   pixVal -= PIXDATA_SOF; /* normalize pixel value to discard SOF bit*/
   
   /* acquire actual pixels (18x18 = 324)*/
-  for(rowIndex = 0; rowIndex < 18; ++rowIndex){
-    for(colIndex = 0; colIndex < 18 ; ++colIndex){
-	if((pixVal & PIXDATA_IVALID) != 0)						/* make sure that the pixel is valid */
-	  printf("%c", (pixVal - PIXDATA_IVALID)); /*< PIXCOLOR_STEP ? '0' : '1')*/
-	else --colIndex;
+  for(rowIndex = 0; rowIndex < CAM_PIX_HEIGHT; ++rowIndex){
+    for(colIndex = 0; colIndex < CAM_PIX_WIDTH ; ++colIndex){
+	if((pixVal & PIXDATA_IVALID) != 0) {						/* make sure that the pixel is valid */
+	  if((pixVal - PIXDATA_IVALID) > camSteps[camId]) {
+            camPixBuf[offsetCamId][byteIndex] <<= 1;
+            camPixBuf[offsetCamId][byteIndex] |= 1;
+          }
+          if(bitIndex++ == 8) {
+            bitIndex = 0;
+            byteIndex++;
+          }
+	} else --colIndex;
+        
 	pixVal = readCamReg(camId, RPIX_DATA);					/* read next pixel */
-    }			
-    printf("\n");
+    }
+  }
+}
+
+inline uint8_t *getPixelBuffer(uint8_t camId) {
+  switch(camId) {
+  case CAM0:
+    return camPixBuf[0];
+    break;
+  case CAM1:
+    return camPixBuf[1];
+    break;
+  default:
+    break;
+  }
+}
+
+void setPixelStep(uint8_t camId, uint8_t newVal) {
+  switch(camId) {
+  case CAM0:
+    camSteps[0] = newVal;
+    break;
+  case CAM1:
+    camSteps[1] = newVal;
+    break;
+  default:
+    break;
   }
 }

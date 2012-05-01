@@ -40,108 +40,172 @@
 #include "motors.h"
 #include "rf12.h"
 
-int main(void)
-{
-	AtomicCommand pcCom;
-	uint8_t optMod = 0;
-	uint8_t optCamId = 0;
-	uint8_t optFeat = 0;
-	uint8_t motorSpeed = 0;
-	uint16_t rfWrtResponse = 0;
+int main(void) {
+  AtomicCommand pcCom;
+  uint8_t optCamId = 0;
+  uint8_t camRetVal = 0;
+  uint8_t comholder[MAX_COMMAND_PAYLOAD];
+  uint8_t respholder[MAX_COMMAND_PAYLOAD];
+  uint8_t *compt = NULL;
+  uint8_t *resppt = NULL;
+  uint8_t respLength = 0;
+
+  pcCom.data = comholder;
+
+  /* initialize system modules */
+  //initMotors();
+  uart_init();
+  initCams();
+
+  /* set nRES on RFM12 HIGH */
+  DDRB |= _BV(PB2);
+  PORTB &= ~_BV(PB2);
+  _delay_ms(10);
+  PORTB |= _BV(PB2);
+  _delay_ms(100);
+
+  initRF();
+  sei();
+
+  /* set STATUS port to output */ 
+  DDRA |= 0xFF;
+  PORTA = 0x00;
+
+  /*
+  _delay_ms(2000);
+  setMotorDirection(ALL_MOTORS, FORWARD);
+  setMotorSpeed(ALL_MOTORS, 50);
+  _delay_ms(1000);
+  stopAllMotors();
+
+  while(1){
+    PORTA = 0b10101010;
+    _delay_ms(500);
+    PORTA = 0b01010101;
+    _delay_ms(500);
+  }*/
 	
-	/* initialize system modules */
-	//initMotors();
-	//initSerial();
-	uart_init();
-	initCams();
+  pwrDownCam(CAM0);
+  pwrDownCam(CAM1);
+  /* force cams LED on */
+  //forceAwakeCam(CAM0);
+  //forceAwakeCam(CAM1);
 	
-	/* set nRES on RFM12 HIGH */
-	DDRB |= _BV(PB2);
-	PORTB &= ~_BV(PB2);
-	_delay_ms(10);
-	PORTB |= _BV(PB2);
-	_delay_ms(100);
-	
-	initRF();
-	sei();
-	
-	//DDRB &= ~_BV(PB0);
-	//while(PINB & _BV(PB0)) { }
-	
-	// set STATUS port to output 
-	DDRA |= 0xFF;
-	PORTA = 0x00;
-	
-	/*
-	_delay_ms(2000);
-	setMotorDirection(ALL_MOTORS, FORWARD);
-	setMotorSpeed(ALL_MOTORS, 50);
-	_delay_ms(1000);
-	stopAllMotors();
-	
-	while(1){
-		PORTA = 0b10101010;
-		_delay_ms(500);
-		PORTA = 0b01010101;
-		_delay_ms(500);
-	}*/
-	
-	pwrDownCam(CAM0);
-	pwrDownCam(CAM1);
-	/* force cams LED on */
-	//forceAwakeCam(CAM0);
-	//forceAwakeCam(CAM1);
-	
-	//uart_putstr("All system initialized, MCU online!");
-    while(1) {
-    rf12_rxdata(&pcCom);
-    rf12_txdata(&pcCom);
-		//rf12_rxdata((uint8_t *)rxMsg, 8);
-		//uart_putstr(rxMsg);
-		/*if(rfm12_rx_status() == STATUS_COMPLETE)
-		{
-			PORTA |= 0x01;
-			if(rfm12_rx_type() == 0xEE) PORTA |= 0x02;
-			if(rfm12_rx_len() == 4)
-			{
-				PORTA |= 0x04;
-				recvData = rfm12_rx_buffer();
-				if(recvData[0] == 'T' || recvData[0] == 't') PORTA |= 0x08;
-			}			
-		}
-				
-		rfm12_tick();
-		*/
-		//rfWrtResponse = rf12_wrt_cmd(0x0000);
-		//uart_putc( rfWrtResponse >> 8 );
-		//uart_putc( rfWrtResponse & 0xFF );
-		
-		//optMod = getchar();
-		//switch(optMod)
-		//{
-			//case 'M': /* cams module */
-				//optCamId = getchar() - '0';
-				//optFeat = getchar();
-				//switch(optFeat)
-				//{
-					//case '0':
-						//pwrDownCam(optCamId);
-						//break;
-					//case '1':
-						//softResetCam(optCamId);
-						//break;
-					//case '2':
-						//forceAwakeCam(optCamId);
-						//break;
-					//default:
-						//printf("M = %3d, m = %3d, s = %3d\n", getMaxPixel(optCamId), getMinPixel(optCamId), getPixelSum(optCamId));
-						//requirePixels(optCamId);
-						//break;
-				//}
-				//break;
-			//default:
-				///* it shouldn't reach this point */
-				//break;
-		//}
-	}
+  uart_putstr("All system initialized, AviCar online!");
+
+  while(1) {
+  rf12_rxdata(&pcCom);
+
+  compt = pcCom.data;
+  resppt = respholder;
+  respLength = 0;
+  while(compt != (pcCom.data + pcCom.length)) {
+    switch(compt[0] & CAR_SUB_COMM_MASK) {
+    case CAR_CAMS_SUB: /* resolve a cam command */
+      switch(compt[0] & CAR_CAMS_ID_MASK) {
+      case CAR_CAMS_ID_TOP:
+        optCamId = CAM1;
+        break;
+      case CAR_CAMS_ID_MID:
+        optCamId = CAM0;
+        break;
+      case CAR_CAMS_ID_ALL:
+        break;
+      default:
+        /* it shouldn't reach this point */
+        break;
+      }
+      switch(compt[0] & CAR_CAMS_FUNC_MASK) {
+      case CARS_CAMS_FUNC_SOFTRESET:
+        softResetCam(optCamId);
+        resppt[0] = 0x01;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_PWRDOWN:
+       pwrDownCam(optCamId);
+       resppt[0] = 0x01;
+       respLength += 1;
+       resppt += 1;
+       compt += 1;
+       break;
+      case CARS_CAMS_FUNC_FORCEON:
+        forceAwakeCam(optCamId);
+        resppt[0] = 0x01;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETMAXPIXEL:
+        camRetVal = getMaxPixel(optCamId);
+        resppt[0] = camRetVal;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETMINPIXEL:
+        camRetVal = getMinPixel(optCamId);
+        resppt[0] = camRetVal;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETSQUAL:
+        camRetVal = getSqual(optCamId);
+        resppt[0] = camRetVal;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETPIXELSUM:
+        camRetVal = getPixelSum(optCamId);
+        resppt[0] = camRetVal;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETXMOVEMENT:
+        camRetVal = getXMovement(optCamId);
+        resppt[0] = camRetVal;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_GETYMOVEMENT:
+        camRetVal = getYMovement(optCamId);
+        resppt[0] = camRetVal;
+        respLength += 1;
+        resppt += 1;
+        compt += 1;
+        break;
+      case CARS_CAMS_FUNC_SETCAMSTEP:
+        setPixelStep(optCamId, compt[1]);
+        resppt[0] = 0x01;
+        respLength += 1;
+        resppt += 1;
+        compt += 2;
+        break;
+      case CARS_CAMS_FUNC_GETPIXELS:
+        requirePixels(optCamId);
+        resppt = getPixelBuffer(optCamId);
+        respLength += CAM_PIX_BYTECNT;
+        compt += 1;
+        break;
+      default:
+        /* it shouldn't reach this point */
+        break;
+      }
+      break;
+    case CAR_MOTS_SUB:
+      break;
+    default:
+      break;
+    }
+  }
+
+  /* reply to demander */
+  pcCom.data = respholder;
+  pcCom.length = respLength;
+  rf12_txdata(&pcCom);
+  }
 }

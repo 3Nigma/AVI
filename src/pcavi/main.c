@@ -43,7 +43,7 @@ AtomicResponse aquireUARTCommand(AtomicCommand *muc) {
 
   /* aquire packet length */
   muc->length = uart_getbyte();
-  if(muc->length > (sizeof(muc->data)/sizeof(muc->data[0]))) return INVALID_LENGTH;
+  if(muc->length > MAX_COMMAND_PAYLOAD) return INVALID_LENGTH;
 
   if(0 == muc->length) {
     /* PC wants a meta command */
@@ -91,7 +91,9 @@ AtomicResponse sendUARTCarResponse(AtomicCommand *muc) {
 int main(void) {
   AtomicResponse comStatus;
   AtomicCommand com;
+  uint8_t comholder[MAX_COMMAND_PAYLOAD];
 
+  com.data = comholder;
   initRF();
   uart_init();
   uart_putstr("PC Avi Online!");

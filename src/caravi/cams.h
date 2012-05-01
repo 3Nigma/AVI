@@ -39,6 +39,11 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
+/* cam physical specs */
+#define CAM_PIX_WIDTH   18
+#define CAM_PIX_HEIGHT  18
+#define CAM_PIX_BYTECNT (CAM_PIX_WIDTH * CAM_PIX_HEIGHT + 4)/8
+
 /* define masks used by the addresses */
 #define WMASK		0x80
 #define RMASK		0x00
@@ -106,4 +111,6 @@ extern uint8_t getPixelSum(uint8_t);
 extern uint8_t getXMovement(uint8_t);
 extern uint8_t getYMovement(uint8_t);
 
+extern uint8_t *getPixelBuffer(uint8_t);
+extern void setPixelStep(uint8_t, uint8_t);
 #endif

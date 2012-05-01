@@ -40,10 +40,10 @@
 #define RF12_MAXTX_ATTEMPTS 3
 
 /* cams region */
-#define CAM_RPORT	PORTD
-#define CAM_WPORT	PIND
-#define CAM_PDIR	DDRD
-#define CAM_DATAPIN PD3
+#define CAM_RPORT       PORTD
+#define CAM_WPORT       PIND
+#define CAM_PDIR        DDRD
+#define CAM_DATAPIN     PD3
 
 /* cams definition used as individual clock inputs and common data line.
    Do not modify unless you know what you are doing! */
