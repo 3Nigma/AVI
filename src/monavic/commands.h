@@ -44,5 +44,8 @@ extern int initLink(int port, int baud);
 extern void closeLink(int port);
 
 extern gboolean isPCAviOnline();
+extern gboolean softResetCam(uint8_t);
+extern gboolean powerDownCam(uint8_t);
+extern gboolean getPixelData(uint8_t, uint8_t **, uint8_t);
 
 #endif

@@ -123,7 +123,6 @@ static AtomicCommand procCommand(AtomicCommand *com) {
     }
     /* get complete packet */
     while((recvByteCnt = PollComport(comPort, buff, sizeof(buff))) == 0) { }
-    g_print("%d %d\n",recvByteCnt, buff[0]);
     localCrc = 0;
     buffIndex = 1;
     resp.length = buff[0];
@@ -164,4 +163,68 @@ gboolean isPCAviOnline() {
   free(reqCom.data);
 
   return result == META_ONLINE_RESPONSE;
+}
+
+static AtomicCommand getResetCamCommand(uint8_t camId) {
+  AtomicCommand resp;
+
+  resp.length = 1;
+  resp.data = (uint8_t *)calloc(1, sizeof(uint8_t));
+  resp.data[0] = CAR_CAMS_SUB | camId | CARS_CAMS_FUNC_SOFTRESET;
+
+  return resp;
+}
+
+gboolean softResetCam(uint8_t camId) {
+  g_assert(linkPresent == 1);
+
+  AtomicCommand reqCom = getResetCamCommand(camId);
+  AtomicCommand result = procCommand(&reqCom);
+
+  free(reqCom.data);
+
+  return result.data[0] == ALL_OK;
+}
+
+static AtomicCommand getPwrDownCamCommand(uint8_t camId) {
+  AtomicCommand resp;
+
+  resp.length = 1;
+  resp.data = (uint8_t *)calloc(1, sizeof(uint8_t));
+  resp.data[0] = CAR_CAMS_SUB | camId | CARS_CAMS_FUNC_PWRDOWN;
+
+  return resp;
+}
+
+gboolean powerDownCam(uint8_t camId) {
+  g_assert(linkPresent == 1);
+
+  AtomicCommand reqCom = getPwrDownCamCommand(camId);
+  AtomicCommand result = procCommand(&reqCom);
+
+  free(reqCom.data);
+
+  return result.data[0] == ALL_OK;
+}
+
+static AtomicCommand getPixelCamDataCommand(uint8_t camId) {
+  AtomicCommand resp;
+
+  resp.length = 1;
+  resp.data = (uint8_t *)calloc(1, sizeof(uint8_t));
+  resp.data[0] = CAR_CAMS_SUB | camId | CARS_CAMS_FUNC_GETPIXELS;
+
+  return resp;
+}
+
+gboolean getPixelData(uint8_t camId, uint8_t **holder, uint8_t holderSz) {
+  g_assert(linkPresent == 1);
+
+  AtomicCommand reqCom = getPixelCamDataCommand(camId);
+  AtomicCommand result = procCommand(&reqCom);
+  g_assert(result.length <= holderSz);
+  g_assert(NULL != holder);
+  g_memmove((*holder), reqCom.data, holderSz);
+
+  return TRUE;
 }
